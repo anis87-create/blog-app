@@ -38,4 +38,5 @@ export interface ArticleFilters {
   search?: string;
   sort?: string;
   page?: number;
+  authorId?: string;
 }

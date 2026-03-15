@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../app/store';
-import { fetchArticles, fetchTopRated, setFilters } from '../features/articles/articlesSlice';
+import { fetchArticles, fetchAllArticles, fetchTopRated, setFilters } from '../features/articles/articlesSlice';
 import { fetchFavorites } from '../features/favorites/favoritesSlice';
 import HeroSection from '../components/hero/HeroSection';
 import ArticleList from '../components/articles/ArticleList';
 import SearchFilters from '../components/search/SearchFilters';
+import AuthorsSection from '../components/authors/AuthorsSection';
 import Loader from '../components/ui/Loader';
 import { Category } from '../types/article.types';
 import { Button } from '../components/ui/button';
@@ -22,9 +23,9 @@ export default function HomePage() {
       await Promise.all([
         dispatch(fetchTopRated()),
         dispatch(fetchArticles(filters)),
+        dispatch(fetchAllArticles()),
       ]);
       if (isAuthenticated) dispatch(fetchFavorites());
-      // Show loader for at least 800ms for a nice UX
       setTimeout(() => setInitialLoading(false), 800);
     };
     init();
@@ -37,23 +38,32 @@ export default function HomePage() {
   if (initialLoading) return <Loader />;
 
   return (
-    <div className="container py-8 space-y-10">
-      {/* Hero - Top rated articles */}
+    <div className="container py-10 space-y-14">
+      {/* Hero */}
       <div>
-        <h2 className="text-sm font-semibold text-primary uppercase tracking-wider mb-4">
-          ⭐ Articles les mieux notés
-        </h2>
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+          <span className="text-xs font-semibold text-primary uppercase tracking-widest">
+            Articles les mieux notés
+          </span>
+        </div>
         <HeroSection articles={topRated} loading={topRatedLoading} />
       </div>
 
-      {/* Main articles */}
+      {/* Authors */}
+      <AuthorsSection />
+
+      {/* Latest articles */}
       <div>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-          <h2 className="text-2xl font-bold">Derniers articles</h2>
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+          <div>
+            <h2 className="text-2xl font-bold text-white tracking-tight">Derniers articles</h2>
+            <p className="text-sm text-white/35 mt-1">Découvrez les publications récentes</p>
+          </div>
         </div>
 
-        {/* Category filters */}
-        <div className="mb-6">
+        {/* Filters */}
+        <div className="mb-8">
           <SearchFilters
             activeCategory={filters.category}
             onSelect={(cat: Category | '') => dispatch(setFilters({ category: cat }))}
@@ -64,23 +74,27 @@ export default function HomePage() {
 
         {/* Pagination */}
         {pagination.totalPages > 1 && (
-          <div className="flex items-center justify-center gap-3 mt-8">
+          <div className="flex items-center justify-center gap-3 mt-12">
             <Button
               variant="outline"
               size="sm"
               disabled={pagination.page <= 1}
               onClick={() => dispatch(setFilters({ page: pagination.page - 1 }))}
+              className="border-white/8 bg-transparent text-white/50 hover:text-white hover:bg-white/[0.07] hover:border-white/15 rounded-lg"
             >
               <ChevronLeftIcon className="w-4 h-4" />
             </Button>
-            <span className="text-sm text-muted-foreground">
-              Page {pagination.page} / {pagination.totalPages}
+            <span className="text-sm text-white/35 font-medium tabular-nums">
+              {pagination.page}
+              <span className="text-white/15 mx-1">/</span>
+              {pagination.totalPages}
             </span>
             <Button
               variant="outline"
               size="sm"
               disabled={pagination.page >= pagination.totalPages}
               onClick={() => dispatch(setFilters({ page: pagination.page + 1 }))}
+              className="border-white/8 bg-transparent text-white/50 hover:text-white hover:bg-white/[0.07] hover:border-white/15 rounded-lg"
             >
               <ChevronRightIcon className="w-4 h-4" />
             </Button>

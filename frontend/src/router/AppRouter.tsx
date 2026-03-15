@@ -11,6 +11,7 @@ import FavoritesPage from '../pages/FavoritesPage';
 import OAuthCallbackPage from '../pages/OAuthCallbackPage';
 import ProtectedRoute from '../components/common/ProtectedRoute';
 import ArticleFormPage from '../pages/ArticleFormPage';
+import AuthorPage from '../pages/AuthorPage';
 
 export default function AppRouter() {
   return (
@@ -21,6 +22,7 @@ export default function AppRouter() {
           <Route path="article/:slug" element={<ArticlePage />} />
           <Route path="category/:category" element={<CategoryPage />} />
           <Route path="search" element={<SearchResultsPage />} />
+          <Route path="author/:authorId" element={<AuthorPage />} />
           <Route path="login" element={<LoginPage />} />
           <Route path="register" element={<RegisterPage />} />
           <Route path="oauth-callback" element={<OAuthCallbackPage />} />

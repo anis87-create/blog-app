@@ -1,7 +1,7 @@
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import api from '../../lib/axios';
 import { Article, ArticleFilters, Category, Pagination } from '../../types/article.types';
-import { MOCK_ARTICLES, MOCK_FEATURED, MOCK_TOP_RATED } from '../../mocks/articles.mock';
+import { MOCK_ARTICLES, MOCK_TOP_RATED } from '../../mocks/articles.mock';
 
 export interface ArticleFormData {
   title: string;
@@ -15,12 +15,14 @@ export interface ArticleFormData {
 
 interface ArticlesState {
   list: Article[];
+  all: Article[];
   topRated: Article[];
   featured: Article[];
   current: Article | null;
   pagination: Pagination;
   filters: ArticleFilters;
   loading: boolean;
+  allLoading: boolean;
   topRatedLoading: boolean;
   saving: boolean;
   deleting: boolean;
@@ -29,46 +31,86 @@ interface ArticlesState {
 
 const initialState: ArticlesState = {
   list: [],
+  all: [],
   topRated: [],
   featured: [],
   current: null,
   pagination: { page: 1, limit: 10, total: 0, totalPages: 0 },
   filters: { category: '', search: '', sort: '-createdAt', page: 1 },
   loading: false,
+  allLoading: false,
   topRatedLoading: false,
   saving: false,
   deleting: false,
   error: null,
 };
 
+/** Fusionne les articles DB avec les mocks (sans doublons par slug) */
+function mergeWithMocks(dbArticles: Article[]): Article[] {
+  const dbSlugs = new Set(dbArticles.map((a) => a.slug));
+  const uniqueMocks = MOCK_ARTICLES.filter((m) => !dbSlugs.has(m.slug));
+  return [...dbArticles, ...uniqueMocks].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+}
+
+/** Applique les filtres côté client sur une liste d'articles */
+function applyFilters(articles: Article[], filters: ArticleFilters): Article[] {
+  let list = [...articles];
+  if (filters.category) list = list.filter((a) => a.category === filters.category);
+  if (filters.authorId) list = list.filter((a) => a.author._id === filters.authorId);
+  if (filters.search) {
+    const q = filters.search.toLowerCase();
+    list = list.filter(
+      (a) => a.title.toLowerCase().includes(q) || a.summary.toLowerCase().includes(q)
+    );
+  }
+  return list;
+}
+
 export const fetchArticles = createAsyncThunk(
   'articles/fetchAll',
   async (filters: ArticleFilters = {}) => {
+    let allArticles: Article[];
     try {
       const params = new URLSearchParams();
       Object.entries(filters).forEach(([k, v]) => { if (v) params.append(k, String(v)); });
       const { data } = await api.get(`/articles?${params}`);
-      return data.data;
+      const dbArticles: Article[] = data.data.articles ?? [];
+      allArticles = mergeWithMocks(dbArticles);
     } catch {
-      let list = [...MOCK_ARTICLES];
-      if (filters.category) list = list.filter((a) => a.category === filters.category);
-      if (filters.search) {
-        const q = filters.search.toLowerCase();
-        list = list.filter((a) => a.title.toLowerCase().includes(q) || a.summary.toLowerCase().includes(q));
-      }
-      const page = filters.page ?? 1;
-      const limit = 10;
-      const total = list.length;
-      const paginated = list.slice((page - 1) * limit, page * limit);
-      return { articles: paginated, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } };
+      allArticles = MOCK_ARTICLES;
     }
+
+    const filtered = applyFilters(allArticles, filters);
+    const page = filters.page ?? 1;
+    const limit = 9;
+    const total = filtered.length;
+    const paginated = filtered.slice((page - 1) * limit, page * limit);
+    return {
+      articles: paginated,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    };
   }
 );
+
+export const fetchAllArticles = createAsyncThunk('articles/fetchAll_noPage', async () => {
+  try {
+    const { data } = await api.get('/articles?limit=200&sort=-createdAt');
+    const dbArticles: Article[] = data.data.articles ?? [];
+    return mergeWithMocks(dbArticles);
+  } catch {
+    return MOCK_ARTICLES;
+  }
+});
 
 export const fetchTopRated = createAsyncThunk('articles/fetchTopRated', async () => {
   try {
     const { data } = await api.get('/articles/top-rated');
-    return data.data.articles;
+    const dbArticles: Article[] = data.data.articles ?? [];
+    return mergeWithMocks(dbArticles)
+      .sort((a, b) => b.averageRating - a.averageRating)
+      .slice(0, 5);
   } catch {
     return MOCK_TOP_RATED;
   }
@@ -77,9 +119,10 @@ export const fetchTopRated = createAsyncThunk('articles/fetchTopRated', async ()
 export const fetchFeatured = createAsyncThunk('articles/fetchFeatured', async () => {
   try {
     const { data } = await api.get('/articles/featured');
-    return data.data.articles;
+    const dbArticles: Article[] = data.data.articles ?? [];
+    return mergeWithMocks(dbArticles).filter((a) => a.isFeatured);
   } catch {
-    return MOCK_FEATURED;
+    return MOCK_ARTICLES.filter((a) => a.isFeatured);
   }
 });
 
@@ -157,6 +200,13 @@ const articlesSlice = createSlice({
         state.error = action.payload as string;
       })
 
+      .addCase(fetchAllArticles.pending, (state) => { state.allLoading = true; })
+      .addCase(fetchAllArticles.fulfilled, (state, action) => {
+        state.allLoading = false;
+        state.all = action.payload;
+      })
+      .addCase(fetchAllArticles.rejected, (state) => { state.allLoading = false; })
+
       .addCase(fetchTopRated.pending, (state) => { state.topRatedLoading = true; })
       .addCase(fetchTopRated.fulfilled, (state, action) => {
         state.topRatedLoading = false;
@@ -206,7 +256,7 @@ const articlesSlice = createSlice({
         if (state.current?._id === action.payload) state.current = null;
       })
       .addCase(deleteArticle.rejected, (state, action) => {
-        state.deleting = false;
+        state.saving = false;
         state.error = action.payload as string;
       });
   },
