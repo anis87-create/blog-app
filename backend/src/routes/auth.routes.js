@@ -6,6 +6,8 @@ router.post('/register', ctrl.register);
 router.post('/login', ctrl.login);
 router.post('/refresh', ctrl.refresh);
 router.post('/logout', ctrl.logout);
+router.post('/forgot-password', ctrl.forgotPassword);
+router.post('/reset-password', ctrl.resetPassword);
 
 // Google OAuth
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'], session: false }));

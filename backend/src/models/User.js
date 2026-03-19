@@ -12,6 +12,8 @@ const userSchema = new mongoose.Schema(
     providerId: { type: String },
     isVerified: { type: Boolean, default: false },
     refreshToken: { type: String, select: false },
+    resetPasswordToken: { type: String, select: false },
+    resetPasswordExpires: { type: Date, select: false },
   },
   { timestamps: true }
 );

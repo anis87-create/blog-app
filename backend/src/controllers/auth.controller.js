@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const User = require('../models/User');
 const { signAccessToken, signRefreshToken, verifyRefreshToken } = require('../utils/jwt');
 const { success, error } = require('../utils/response');
@@ -84,6 +85,54 @@ exports.logout = async (req, res) => {
     }
     res.clearCookie('refreshToken');
     return success(res, {}, 'Logged out');
+  } catch (err) {
+    return error(res, err.message);
+  }
+};
+
+exports.forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) return error(res, 'No account found with this email', 404);
+    if (user.provider !== 'local') return error(res, 'This account uses OAuth login', 400);
+
+    // Generate a random token
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+
+    user.resetPasswordToken = hashedToken;
+    user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    await user.save();
+
+    // TODO: In production, send this link by email instead of returning it
+    const resetLink = `${process.env.CLIENT_URL}/reset-password?token=${rawToken}`;
+    return success(res, { resetLink }, 'Reset link generated');
+  } catch (err) {
+    return error(res, err.message);
+  }
+};
+
+exports.resetPassword = async (req, res) => {
+  try {
+    const { token, password } = req.body;
+    if (!token || !password) return error(res, 'Token and new password are required', 400);
+
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+    const user = await User.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpires: { $gt: Date.now() },
+    }).select('+resetPasswordToken +resetPasswordExpires');
+
+    if (!user) return error(res, 'Invalid or expired reset token', 400);
+
+    user.password = password;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+
+    return success(res, {}, 'Password reset successfully');
   } catch (err) {
     return error(res, err.message);
   }

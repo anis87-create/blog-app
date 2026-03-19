@@ -7,6 +7,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
+import RichEditor from '../components/RichEditor';
 import { Category } from '../types/article.types';
 
 export default function ArticleFormPage() {
@@ -111,16 +112,10 @@ export default function ArticleFormPage() {
 
         {/* Content */}
         <div className="space-y-1.5">
-          <Label htmlFor="content">Contenu (HTML accepté)</Label>
-          <Textarea
-            id="content"
-            name="content"
+          <Label>Contenu</Label>
+          <RichEditor
             value={form.content}
-            onChange={handleChange}
-            required
-            rows={12}
-            placeholder="<p>Contenu de l'article...</p>"
-            className="font-mono text-sm"
+            onChange={(html) => setForm((prev) => ({ ...prev, content: html }))}
           />
         </div>
 
