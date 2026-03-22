@@ -6,6 +6,7 @@ import HeroSection from '../components/hero/HeroSection';
 import ArticleList from '../components/articles/ArticleList';
 import SearchFilters from '../components/search/SearchFilters';
 import AuthorsSection from '../components/authors/AuthorsSection';
+import PopularArticlesSection from '../components/articles/PopularArticlesSection';
 import Loader from '../components/ui/Loader';
 import { Category } from '../types/article.types';
 import { Button } from '../components/ui/button';
@@ -52,6 +53,9 @@ export default function HomePage() {
 
       {/* Authors */}
       <AuthorsSection />
+
+      {/* Popular articles */}
+      <PopularArticlesSection articles={topRated} loading={topRatedLoading} />
 
       {/* Latest articles */}
       <div>
