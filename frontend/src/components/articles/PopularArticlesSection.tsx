@@ -43,8 +43,8 @@ export default function PopularArticlesSection({ articles, loading }: PopularArt
               Tendances
             </span>
           </div>
-          <h2 className="text-2xl font-bold text-white tracking-tight">Articles populaires</h2>
-          <p className="text-sm text-white/35 mt-1">Plébiscités par la communauté</p>
+          <h2 className="text-2xl font-bold text-foreground tracking-tight">Articles populaires</h2>
+          <p className="text-sm text-muted-foreground mt-1">Plébiscités par la communauté</p>
         </div>
       </div>
 

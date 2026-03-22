@@ -61,8 +61,8 @@ export default function HomePage() {
       <div>
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
           <div>
-            <h2 className="text-2xl font-bold text-white tracking-tight">Derniers articles</h2>
-            <p className="text-sm text-white/35 mt-1">Découvrez les publications récentes</p>
+            <h2 className="text-2xl font-bold text-foreground tracking-tight">Derniers articles</h2>
+            <p className="text-sm text-muted-foreground mt-1">Découvrez les publications récentes</p>
           </div>
         </div>
 
